@@ -1,6 +1,9 @@
 package com.example.trace2json.process;
 
+import com.example.trace2json.Call;
 import com.example.trace2json.pojo.TraceRoot;
+
+import java.time.LocalTime;
 
 
 /**
@@ -11,11 +14,9 @@ public interface TraceBuilder
 	/**
 	 * Processes given log information.
 	 *
-	 * @param service service that has logged the line
-	 * @param spanFrom span ID of the caller
-	 * @param spanTo span ID of the receiver
+	 * @param call
 	 */
-	void processLog(final String service, final String spanFrom, final String spanTo);
+	void processCall(final Call call);
 
 	/**
 	 * Returns the trace that has been built so far.
@@ -23,4 +24,12 @@ public interface TraceBuilder
 	 * @return the current trace
 	 */
 	TraceRoot buildTrace();
+
+	/**
+	 * Returns the timestamp of when the trace have finished, if already known. If the end time is not yet known,
+	 * returns null.
+	 *
+	 * @return the timestamp of end time or null
+	 */
+	LocalTime getEndTimeOrNull();
 }

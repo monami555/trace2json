@@ -4,6 +4,7 @@ import com.example.trace2json.LogLine;
 import com.example.trace2json.LogLineInvalidException;
 import com.example.trace2json.LogLineProcessor;
 import com.example.trace2json.LogsProcessor;
+import com.example.trace2json.trace.TraceInvalidException;
 import com.example.trace2json.trace.TraceRoot;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.util.MinimalPrettyPrinter;
@@ -58,13 +59,21 @@ public class DefaultLogsProcessor implements LogsProcessor
 					callProcessor.processLogLine(logLine);
 					writer.writeAll(callProcessor.popReadyTraces(false));
 				}
-				catch (final LogLineInvalidException e)
+				catch (final LogLineInvalidException | TraceInvalidException e)
 				{
 					System.err.println(e.getMessage() + ", at line " + line);
 				}
 			}
-			final Collection<TraceRoot> newTraces = callProcessor.popReadyTraces(true);
-			writer.writeAll(newTraces);
+
+			try
+			{
+				final Collection<TraceRoot> newTraces = callProcessor.popReadyTraces(true);
+				writer.writeAll(newTraces);
+			}
+			catch (final LogLineInvalidException | TraceInvalidException e)
+			{
+				System.err.println(e.getMessage() + ", at line " + line);
+			}
 
 			System.err.println(
 					"Processing took: " + Duration.between(startTime, LocalDateTime.now()).toMillis() + " ms");

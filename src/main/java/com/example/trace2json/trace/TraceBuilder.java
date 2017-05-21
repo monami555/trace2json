@@ -13,9 +13,10 @@ public interface TraceBuilder
 	/**
 	 * Processes given log line, adding up to the trace tree.
 	 *
+	 * @throws TraceInvalidException in case the new information conflicts with the existing one
 	 * @param logLine the log line
 	 */
-	void processCall(final LogLine logLine);
+	void processCall(final LogLine logLine) throws TraceInvalidException;
 
 	/**
 	 * Returns the {@link TraceRoot} that has been built so far.

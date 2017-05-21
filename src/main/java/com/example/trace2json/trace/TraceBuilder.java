@@ -20,10 +20,10 @@ public interface TraceBuilder
 	/**
 	 * Returns the {@link TraceRoot} that has been built so far.
 	 *
-	 * @throws TraceIncompleteException in case the trace still contains orphaned nodes
+	 * @throws TraceInvalidException in case the trace still contains orphaned nodes
 	 * @return the current trace
 	 */
-	TraceRoot buildTrace() throws TraceIncompleteException;
+	TraceRoot buildTrace() throws TraceInvalidException;
 
 	/**
 	 * Returns the timestamp of when the trace have finished, if already known. If the end time is not yet known,

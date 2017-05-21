@@ -47,10 +47,10 @@ public class Trace2JsonCli
 		System.out.println("This program reads log lines of service calls and converts them to JSON trees. ");
 		System.out.println();
 		System.out.println("Usage: ");
-		System.out.println("trace2json inputFile outputFile");
+		System.out.println("  trace2json inputFile outputFile");
 		System.out.println();
 		System.out.println("Use 'STDIN' or 'STDOUT' to read from or print to stdout, e.g.:");
-		System.out.println("trace2json STDIN STDOUT");
+		System.out.println("  trace2json STDIN STDOUT");
 	}
 
 }

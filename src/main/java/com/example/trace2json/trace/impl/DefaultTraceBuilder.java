@@ -4,7 +4,7 @@ package com.example.trace2json.trace.impl;
 import com.example.trace2json.LogLine;
 import com.example.trace2json.trace.Trace;
 import com.example.trace2json.trace.TraceBuilder;
-import com.example.trace2json.trace.TraceIncompleteException;
+import com.example.trace2json.trace.TraceInvalidException;
 import com.example.trace2json.trace.TraceRoot;
 
 import java.time.LocalDateTime;
@@ -49,6 +49,10 @@ public class DefaultTraceBuilder implements TraceBuilder
 			this.rootTrace.setRoot(trace);
 			trace.setOrphaned(false);
 		}
+		if (spanToTrace.containsKey(trace.getSpan()))
+		{
+			throw new TraceInvalidException("Duplicate span IDs found: " + trace.getSpan());
+		}
 		spanToTrace.put(trace.getSpan(), trace);
 	}
 
@@ -70,7 +74,7 @@ public class DefaultTraceBuilder implements TraceBuilder
 		}
 		if (spanToTrace.values().stream().filter(t -> t.isOrphaned()).findAny().isPresent())
 		{
-			throw new TraceIncompleteException("The trace '" + rootTrace.getId() + "' is not complete.");
+			throw new TraceInvalidException("The trace '" + rootTrace.getId() + "' is not complete.");
 		}
 		return rootTrace;
 	}

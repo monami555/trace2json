@@ -3,7 +3,7 @@ package com.example.trace2json.impl;
 
 import com.example.trace2json.LogLine;
 import com.example.trace2json.trace.Trace;
-import com.example.trace2json.trace.TraceIncompleteException;
+import com.example.trace2json.trace.TraceInvalidException;
 import com.example.trace2json.trace.TraceRoot;
 
 import org.junit.Assert;
@@ -73,7 +73,7 @@ public class DefaultLogLineProcessorTest
 		Assert.assertEquals(0, processor.popReadyTraces(false).size());
 	}
 
-	@Test(expected = TraceIncompleteException.class)
+	@Test(expected = TraceInvalidException.class)
 	public void testDoesPopUnfinishedTraceWhenForced()
 	{
 		processor.processLogLine(new LogLine(startTime, startTime.plusMinutes(1), TRACE1, SERVICE, "ww", "cc"));
@@ -103,31 +103,12 @@ public class DefaultLogLineProcessorTest
 		Assert.assertEquals(2, trace.getCalls().size());
 	}
 
-	@Test
+	@Test(expected = TraceInvalidException.class)
 	public void tesCircularLogsAreHandled()
 	{
 		processor.processLogLine(new LogLine(startTime, startTime.plusMinutes(1), TRACE1, SERVICE, SPAN2, SPAN1));
 		processor.processLogLine(new LogLine(startTime, startTime.plusMinutes(2), TRACE1, SERVICE, SPAN1, SPAN2));
 		processor.processLogLine(new LogLine(startTime, startTime.plusMinutes(3), TRACE1, SERVICE, null, SPAN2));
-		final Collection<TraceRoot> traces = processor.popReadyTraces(true);
-		Assert.assertEquals(1, traces.size());
-
-		final TraceRoot traceRoot = traces.iterator().next();
-		Assert.assertEquals(TRACE1, traceRoot.getId());
-
-		final Trace trace = traceRoot.getRoot();
-		Assert.assertEquals(null, trace.getCallerSpanId());
-		Assert.assertEquals(SPAN2, trace.getSpan());
-		Assert.assertEquals(1, trace.getCalls().size());
-
-		final Trace traceInner = trace.getCalls().iterator().next();
-		Assert.assertEquals(SPAN2, traceInner.getCallerSpanId());
-		Assert.assertEquals(SPAN1, traceInner.getSpan());
-		Assert.assertEquals(1, traceInner.getCalls().size());
-
-		final Trace traceYetInnerer = traceInner.getCalls().iterator().next();
-		Assert.assertEquals(SPAN1, traceYetInnerer.getCallerSpanId());
-		Assert.assertEquals(SPAN2, traceYetInnerer.getSpan());
-		Assert.assertEquals(0, traceYetInnerer.getCalls().size());
+		processor.popReadyTraces(true);
 	}
 }

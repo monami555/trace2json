@@ -29,19 +29,17 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class DefaultLogLineProcessor implements LogLineProcessor
 {
-	private static Duration epsilon = DEFAULT_TRACE_FINISHED_AFTER;
-	private static int traceNumberBuffer = DEFAULT_TRACE_NUMBER_BUFFER;
+	private Duration epsilon = DEFAULT_TRACE_FINISHED_AFTER;
+	private int traceNumberBuffer = DEFAULT_TRACE_NUMBER_BUFFER;
 
-	private static Map<String, TraceBuilder> traceBuilders = new ConcurrentHashMap<>();
-	private static LocalDateTime lastEndTime;
+	private Map<String, TraceBuilder> traceBuilders = new ConcurrentHashMap<>();
+	private LocalDateTime lastEndTime;
 
 	@Override
 	public void processLogLine(LogLine logLine)
 	{
-		if (lastEndTime == null || logLine.getEndTime().isAfter(lastEndTime))
-		{
-			lastEndTime = logLine.getEndTime();
-		}
+		updateEndTimeIfLater(logLine);
+
 		final String traceId = logLine.getTraceId();
 		TraceBuilder traceBuilder = traceBuilders.get(traceId);
 		if (traceBuilder == null)
@@ -50,6 +48,14 @@ public class DefaultLogLineProcessor implements LogLineProcessor
 			traceBuilders.put(traceId, traceBuilder);
 		}
 		traceBuilder.processCall(logLine);
+	}
+
+	private void updateEndTimeIfLater(final LogLine logLine)
+	{
+		if (lastEndTime == null || (logLine.getEndTime() != null && logLine.getEndTime().isAfter(lastEndTime)))
+		{
+			lastEndTime = logLine.getEndTime();
+		}
 	}
 
 	@Override

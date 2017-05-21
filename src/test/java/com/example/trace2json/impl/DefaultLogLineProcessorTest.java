@@ -3,6 +3,7 @@ package com.example.trace2json.impl;
 
 import com.example.trace2json.LogLine;
 import com.example.trace2json.trace.Trace;
+import com.example.trace2json.trace.TraceIncompleteException;
 import com.example.trace2json.trace.TraceRoot;
 
 import org.junit.Assert;
@@ -58,27 +59,27 @@ public class DefaultLogLineProcessorTest
 	@Test
 	public void testDoesNotPopUnfinishedTrace()
 	{
-		processor.processLogLine(new LogLine(startTime, startTime.plusMinutes(1), TRACE1, SERVICE, SPAN1, SPAN2));
-		processor.processLogLine(new LogLine(startTime, startTime.plusMinutes(2), TRACE1, SERVICE, SPAN1, SPAN2));
+		processor.processLogLine(new LogLine(startTime, startTime.plusMinutes(1), TRACE1, SERVICE, SPAN2, "cc"));
+		processor.processLogLine(new LogLine(startTime, startTime.plusMinutes(2), TRACE1, SERVICE, SPAN2, "dd"));
 		Assert.assertEquals(0, processor.popReadyTraces(false).size());
 	}
 
 	@Test
 	public void testDoesNotPopFinishedTraceTooEarly()
 	{
-		processor.processLogLine(new LogLine(startTime, startTime.plusMinutes(1), TRACE1, SERVICE, SPAN1, SPAN2));
-		processor.processLogLine(new LogLine(startTime, startTime.plusMinutes(2), TRACE1, SERVICE, SPAN1, SPAN2));
+		processor.processLogLine(new LogLine(startTime, startTime.plusMinutes(1), TRACE1, SERVICE, SPAN2, "cc"));
+		processor.processLogLine(new LogLine(startTime, startTime.plusMinutes(2), TRACE1, SERVICE, SPAN2, "dd"));
 		processor.processLogLine(new LogLine(startTime, startTime.plusMinutes(3), TRACE1, SERVICE, null, SPAN2));
 		Assert.assertEquals(0, processor.popReadyTraces(false).size());
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test(expected = TraceIncompleteException.class)
 	public void testDoesPopUnfinishedTraceWhenForced()
 	{
-		processor.processLogLine(new LogLine(startTime, startTime.plusMinutes(1), TRACE1, SERVICE, SPAN1, SPAN2));
-		processor.processLogLine(new LogLine(startTime, startTime.plusMinutes(2), TRACE1, SERVICE, SPAN1, SPAN2));
+		processor.processLogLine(new LogLine(startTime, startTime.plusMinutes(1), TRACE1, SERVICE, "ww", "cc"));
+		processor.processLogLine(new LogLine(startTime, startTime.plusMinutes(2), TRACE1, SERVICE, SPAN2, "dd"));
 		processor.processLogLine(new LogLine(startTime, startTime.plusMinutes(3), TRACE1, SERVICE, null, SPAN2));
-		processor.popReadyTraces(true).size();
+		processor.popReadyTraces(true);
 	}
 
 	@Test
@@ -108,9 +109,7 @@ public class DefaultLogLineProcessorTest
 		processor.processLogLine(new LogLine(startTime, startTime.plusMinutes(1), TRACE1, SERVICE, SPAN2, SPAN1));
 		processor.processLogLine(new LogLine(startTime, startTime.plusMinutes(2), TRACE1, SERVICE, SPAN1, SPAN2));
 		processor.processLogLine(new LogLine(startTime, startTime.plusMinutes(3), TRACE1, SERVICE, null, SPAN2));
-		processor.processLogLine(new LogLine(startTime, startTime.plusMinutes(5), TRACE2, SERVICE, SPAN1, SPAN2));
-
-		final Collection<TraceRoot> traces = processor.popReadyTraces(false);
+		final Collection<TraceRoot> traces = processor.popReadyTraces(true);
 		Assert.assertEquals(1, traces.size());
 
 		final TraceRoot traceRoot = traces.iterator().next();

@@ -8,14 +8,14 @@ import com.example.trace2json.process.TraceBuilder;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Optional;
+import java.util.HashMap;
+import java.util.Map;
 
 
 public class DefaultTraceBuilder implements TraceBuilder
 {
 	private TraceRoot rootTrace;
-	private Collection<Trace> traces;
+	private Map<String, Trace> spanToTrace;
 	private LocalDateTime endTime;
 
 	/**
@@ -27,7 +27,7 @@ public class DefaultTraceBuilder implements TraceBuilder
 	{
 		this.rootTrace = new TraceRoot();
 		this.rootTrace.setId(traceId);
-		this.traces = new ArrayList<>();
+		this.spanToTrace = new HashMap<>();
 	}
 
 	@Override
@@ -48,52 +48,30 @@ public class DefaultTraceBuilder implements TraceBuilder
 			this.rootTrace.setRoot(trace);
 			trace.setOrphaned(false);
 		}
-		traces.add(trace);
+		spanToTrace.put(trace.getSpan(), trace);
 	}
 
 	@Override
 	public TraceRoot buildTrace()
 	{
-		for (Trace trace : traces)
+		for (Trace trace : spanToTrace.values())
 		{
-			Optional<Trace> predecessor = findPredecessor(traces, trace.getCallerSpanId());
-			if (predecessor.isPresent())
+			if (trace.getCallerSpanId() == null)
 			{
-				predecessor.get().getCalls().add(trace);
+				continue;
+			}
+			Trace predecessor = spanToTrace.get(trace.getCallerSpanId());
+			if (predecessor != null)
+			{
+				predecessor.getCalls().add(trace);
 				trace.setOrphaned(false);
 			}
 		}
-		if (traces.stream().filter(t -> t.isOrphaned()).findAny().isPresent())
+		if (spanToTrace.values().stream().filter(t -> t.isOrphaned()).findAny().isPresent())
 		{
-			throw new IllegalArgumentException("The trace is not finished.");
+			throw new IllegalArgumentException("The trace '" + rootTrace.getId() + "' is not finished.");
 		}
 		return rootTrace;
-	}
-
-	private Optional<Trace> findPredecessor(final Collection<Trace> traces, final String spanId)
-	{
-		Optional<Trace> oot = traces
-				.stream()
-				.map(t -> findPredecessor(t.getCalls(), spanId))
-				.filter(ot -> ot.isPresent())
-				.findAny().orElse(null);
-
-		Optional<Trace> maybeATrace = traces
-				.stream()
-				.filter(t -> t.getSpan().equals(spanId))
-				.findAny();
-
-		if (!maybeATrace.isPresent())
-		{
-			maybeATrace = traces
-					.stream()
-					.map(t -> findPredecessor(t.getCalls(), spanId))
-					.filter(ot -> ot.isPresent())
-					.findAny()
-					.orElse(Optional.empty());
-		}
-
-		return maybeATrace;
 	}
 
 	@Override
@@ -103,7 +81,8 @@ public class DefaultTraceBuilder implements TraceBuilder
 	}
 
 	@Override
-	public String toString() {
+	public String toString()
+	{
 		return rootTrace.getId();
 	}
 }

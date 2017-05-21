@@ -67,6 +67,15 @@ public class DefaultCallsProcessorTest
 		Assert.assertEquals(0, processor.popReadyTraces(false).size());
 	}
 
+	@Test(expected = IllegalArgumentException.class)
+	public void testDoesPopUnfinishedTraceWhenForced()
+	{
+		processor.processCall(new Call(startTime, startTime.plusMinutes(1), TRACE1, SERVICE, SPAN1, SPAN2));
+		processor.processCall(new Call(startTime, startTime.plusMinutes(2), TRACE1, SERVICE, SPAN1, SPAN2));
+		processor.processCall(new Call(startTime, startTime.plusMinutes(3), TRACE1, SERVICE, null, SPAN2));
+		processor.popReadyTraces(true).size();
+	}
+
 	@Test
 	public void testPopsFinishedOldTrace()
 	{
@@ -78,8 +87,10 @@ public class DefaultCallsProcessorTest
 		final Collection<TraceRoot> traces = processor.popReadyTraces(false);
 		Assert.assertEquals(1, traces.size());
 		Assert.assertEquals(0, processor.popReadyTraces(false).size());
+
 		final TraceRoot traceRoot = traces.iterator().next();
 		Assert.assertEquals(TRACE1, traceRoot.getId());
+
 		final Trace trace = traceRoot.getRoot();
 		Assert.assertEquals(null, trace.getCallerSpanId());
 		Assert.assertEquals(SPAN2, trace.getSpan());
@@ -93,9 +104,26 @@ public class DefaultCallsProcessorTest
 		processor.processCall(new Call(startTime, startTime.plusMinutes(2), TRACE1, SERVICE, SPAN1, SPAN2));
 		processor.processCall(new Call(startTime, startTime.plusMinutes(3), TRACE1, SERVICE, null, SPAN2));
 		processor.processCall(new Call(startTime, startTime.plusMinutes(5), TRACE2, SERVICE, SPAN1, SPAN2));
+
 		final Collection<TraceRoot> traces = processor.popReadyTraces(false);
 		Assert.assertEquals(1, traces.size());
-		Assert.assertEquals(0, processor.popReadyTraces(false).size());
-		Assert.assertEquals(TRACE1, traces.iterator().next().getId());
+
+		final TraceRoot traceRoot = traces.iterator().next();
+		Assert.assertEquals(TRACE1, traceRoot.getId());
+
+		final Trace trace = traceRoot.getRoot();
+		Assert.assertEquals(null, trace.getCallerSpanId());
+		Assert.assertEquals(SPAN2, trace.getSpan());
+		Assert.assertEquals(1, trace.getCalls().size());
+
+		final Trace traceInner = trace.getCalls().iterator().next();
+		Assert.assertEquals(SPAN2, traceInner.getCallerSpanId());
+		Assert.assertEquals(SPAN1, traceInner.getSpan());
+		Assert.assertEquals(1, traceInner.getCalls().size());
+
+		final Trace traceYetInnerer = traceInner.getCalls().iterator().next();
+		Assert.assertEquals(SPAN1, traceYetInnerer.getCallerSpanId());
+		Assert.assertEquals(SPAN2, traceYetInnerer.getSpan());
+		Assert.assertEquals(0, traceYetInnerer.getCalls().size());
 	}
 }

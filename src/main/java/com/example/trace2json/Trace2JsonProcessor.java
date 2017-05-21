@@ -6,7 +6,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.util.MinimalPrettyPrinter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SequenceWriter;
-import com.google.common.base.Charsets;
 import com.google.common.io.Resources;
 
 import java.io.File;
@@ -31,17 +30,16 @@ public class Trace2JsonProcessor
 			"yyyy-MM-dd'T'HH:mm:ss.SS'Z'",
 			"yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
 			"yyyy-MM-dd'T'HH:mm:ss'Z'"};
+
 	private Collection<DateTimeFormatter> dateTimeFormatters;
 	private ObjectMapper jsonMapper;
 	private Writer outputWriter;
-	private Reader inputReader;
 	private CallsProcessor logsProcessor = new DefaultCallsProcessor();
 	private Scanner scanner;
 
 	public static void main(final String... args) throws IOException
 	{
-		final URL url = Resources.getResource("small-log.txt");
-		final String input = Resources.toString(url, Charsets.UTF_8);
+		final URL url = Resources.getResource("medium-log.txt");
 		Trace2JsonProcessor proc = new Trace2JsonProcessor(
 				new FileReader(new File(url.getFile())),
 				new FileWriter(new File("src/main/resources/output.txt")));
@@ -50,41 +48,60 @@ public class Trace2JsonProcessor
 
 	public Trace2JsonProcessor(final Reader inputReader, final Writer outputWriter)
 	{
-		this.outputWriter = outputWriter;
-		this.inputReader = inputReader;
-		this.scanner = new Scanner(inputReader);
 
 		this.jsonMapper = new ObjectMapper();
 		this.jsonMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
+
+		this.outputWriter = outputWriter;
+		this.scanner = new Scanner(inputReader);
+
 		this.dateTimeFormatters = Arrays
 				.stream(ALLOWED_DATE_FORMATS)
-				.map(df -> DateTimeFormatter.ofPattern(df)).collect(Collectors.toList());
-
+				.map(df -> DateTimeFormatter.ofPattern(df))
+				.collect(Collectors.toList());
 	}
 
-	private void process() throws IOException
+	private void process()
 	{
-		final SequenceWriter sequenceWriter = jsonMapper
-				.writer(new MinimalPrettyPrinter(System.getProperty("line.separator")))
-				.writeValues(outputWriter);
-
-		while (scanner.hasNext())
+		SequenceWriter writer = null;
+		try
 		{
-			final LocalDateTime start = parseDateTime(scanner.next());
-			final LocalDateTime end = parseDateTime(scanner.next());
-			final String traceId = scanner.next();
-			final String service = scanner.next();
-			final String[] spans = scanner.next().split("->");
-			final String callerSpanId = "null".equals(spans[0]) ? null : spans[0];
-			final String spanId = spans[1];
+			writer = jsonMapper
+					.writer(new MinimalPrettyPrinter(System.getProperty("line.separator")))
+					.writeValues(outputWriter);
 
-			logsProcessor.processCall(new Call(start, end, traceId, service, callerSpanId, spanId));
+			while (scanner.hasNext())
+			{
+				final Call call = readCallLine(scanner);
+				logsProcessor.processCall(call);
+				writer.writeAll(logsProcessor.popReadyTraces(false));
+			}
 
-			sequenceWriter.writeAll(logsProcessor.popReadyTraces(false));
+			writer.writeAll(logsProcessor.popReadyTraces(true));
+			writer.close();
 		}
-		sequenceWriter.writeAll(logsProcessor.popReadyTraces(true));
-		scanner.close();
+		catch (final IOException e)
+		{
+			System.err.println("Problem writing or reading file: " + e.getMessage());
+			e.printStackTrace();
+		}
+		finally
+		{
+			scanner.close();
+		}
+	}
+
+	private Call readCallLine(final Scanner scanner)
+	{
+		final LocalDateTime start = parseDateTime(scanner.next());
+		final LocalDateTime end = parseDateTime(scanner.next());
+		final String traceId = scanner.next();
+		final String service = scanner.next();
+		final String[] spans = scanner.next().split("->");
+		final String callerSpanId = "null".equals(spans[0]) ? null : spans[0];
+		final String spanId = spans[1];
+		return new Call(start, end, traceId, service, callerSpanId, spanId);
 	}
 
 	private LocalDateTime parseDateTime(final String str)

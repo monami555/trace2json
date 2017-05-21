@@ -5,7 +5,6 @@ import com.example.trace2json.LogLineInvalidException;
 import com.example.trace2json.LogLineProcessor;
 import com.example.trace2json.LogsProcessor;
 import com.example.trace2json.trace.TraceInvalidException;
-import com.example.trace2json.trace.TraceRoot;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.util.MinimalPrettyPrinter;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -49,6 +48,8 @@ public class DefaultLogsProcessor implements LogsProcessor
 						.writeValues(outputWriter))
 		{
 			final LocalDateTime startTime = LocalDateTime.now();
+			int linesProcessed = 0;
+			int errors = 0;
 
 			String line;
 			while ((line = reader.readLine()) != null)
@@ -58,25 +59,27 @@ public class DefaultLogsProcessor implements LogsProcessor
 					final LogLine logLine = readLogLine(line);
 					callProcessor.processLogLine(logLine);
 					writer.writeAll(callProcessor.popReadyTraces(false));
+					linesProcessed++;
 				}
 				catch (final LogLineInvalidException | TraceInvalidException e)
 				{
 					System.err.println(e.getMessage() + ", at line " + line);
+					errors++;
 				}
 			}
 
 			try
 			{
-				final Collection<TraceRoot> newTraces = callProcessor.popReadyTraces(true);
-				writer.writeAll(newTraces);
+				writer.writeAll(callProcessor.popReadyTraces(true));
 			}
-			catch (final LogLineInvalidException | TraceInvalidException e)
+			catch (final TraceInvalidException e)
 			{
-				System.err.println(e.getMessage() + ", at line " + line);
+				System.err.println(e.getMessage());
 			}
 
 			System.err.println(
-					"Processing took: " + Duration.between(startTime, LocalDateTime.now()).toMillis() + " ms");
+					"Processing took " + Duration.between(startTime, LocalDateTime.now()).toMillis() + " ms, " +
+							"processed " + linesProcessed + " lines, encountered " + errors + " errors.");
 		}
 		catch (final IOException e)
 		{
@@ -114,7 +117,7 @@ public class DefaultLogsProcessor implements LogsProcessor
 			}
 			catch (DateTimeParseException e)
 			{
-				// keep trying; yes not a good practice but no better solution at hand
+				// keep trying; yes not a good practice in general, but here seems to be the simplest
 			}
 		}
 		throw new LogLineInvalidException("Unknown date format: " + str);

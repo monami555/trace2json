@@ -30,6 +30,7 @@ public class DefaultCallsProcessorTest
 	{
 		startTime = LocalDateTime.of(2000, 12, 1, 0, 1);
 		processor.setEpsilon(Duration.ofMinutes(1));
+		processor.setTraceNumberBuffer(0);
 	}
 
 	@Test

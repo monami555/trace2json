@@ -9,6 +9,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -17,6 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class DefaultCallsProcessor implements CallsProcessor
 {
 	private Duration epsilon = DEFAULT_TRACE_FINISHED_AFTER;
+	private int traceNumberBuffer = DEFAULT_TRACE_NUMBER_BUFFER;
 
 	private Map<String, TraceBuilder> traceBuilders = new ConcurrentHashMap<>();
 	private LocalDateTime lastEndTime;
@@ -41,16 +43,24 @@ public class DefaultCallsProcessor implements CallsProcessor
 	@Override
 	public Collection<TraceRoot> popReadyTraces(final boolean force)
 	{
-		// TODO make parallelizable!
-		List<TraceRoot> result = new ArrayList<>();
-		traceBuilders
-				.forEach((traceId, builder) -> {
-					if (force || isTraceOld(builder.getEndTimeOrNull()))
-					{
-						result.add(traceBuilders.remove(traceId).buildTrace());
-					}
-				});
-		return result;
+		if (force || traceBuilders.size() > traceNumberBuffer)
+		{
+			// TODO make parallelizable!
+			final List<TraceRoot> result = new ArrayList<>();
+			traceBuilders
+					.forEach((traceId, builder) -> {
+						if (force || isTraceOld(builder.getEndTimeOrNull()))
+						{
+							result.add(traceBuilders.remove(traceId)
+									.buildTrace());
+						}
+					});
+			return result;
+		}
+		else
+		{
+			return Collections.emptyList();
+		}
 	}
 
 	public LocalDateTime getLastEndTime()
@@ -61,6 +71,10 @@ public class DefaultCallsProcessor implements CallsProcessor
 	public void setEpsilon(final Duration epsilon)
 	{
 		this.epsilon = epsilon;
+	}
+
+	public void setTraceNumberBuffer(final int traceNumberBuffer) {
+		this.traceNumberBuffer = traceNumberBuffer;
 	}
 
 	private boolean isTraceOld(LocalDateTime endTime)

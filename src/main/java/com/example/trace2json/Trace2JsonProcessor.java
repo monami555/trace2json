@@ -1,61 +1,74 @@
 package com.example.trace2json;
 
-import static java.time.temporal.ChronoField.DAY_OF_MONTH;
-import static java.time.temporal.ChronoField.MONTH_OF_YEAR;
-import static java.time.temporal.ChronoField.YEAR;
-
-
-import com.example.trace2json.pojo.TraceRoot;
 import com.example.trace2json.process.CallsProcessor;
 import com.example.trace2json.process.impl.DefaultCallsProcessor;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.util.MinimalPrettyPrinter;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SequenceWriter;
 import com.google.common.base.Charsets;
 import com.google.common.io.Resources;
 
 import java.io.File;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.io.Reader;
 import java.io.Writer;
 import java.net.URL;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Scanner;
+import java.util.stream.Collectors;
 
 
 public class Trace2JsonProcessor
 {
-	public static final String LOG_PATTERN = "2013-10-23T10:12:35.345Z 2013-10-23T10:12:35.361Z eckakaau service5 22buxmqp->3wos67cv";
-
-	private DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSz");
-	private DateTimeFormatter dtf2 = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSz");
-	private DateTimeFormatter dtf3 = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssz");
-	private ObjectMapper mapper;
+	private static final String[] ALLOWED_DATE_FORMATS = new String[]{
+			"yyyy-MM-dd'T'HH:mm:ss.SS'Z'",
+			"yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+			"yyyy-MM-dd'T'HH:mm:ss'Z'"};
+	private Collection<DateTimeFormatter> dateTimeFormatters;
+	private ObjectMapper jsonMapper;
 	private Writer outputWriter;
 	private Reader inputReader;
 	private CallsProcessor logsProcessor = new DefaultCallsProcessor();
 	private Scanner scanner;
 
-	DateTimeFormatter strangeFormat = new DateTimeFormatterBuilder()
-			.appendValue(MONTH_OF_YEAR, 2).appendLiteral("==").appendValue(YEAR, 4)
-			.appendLiteral("--").appendValue(DAY_OF_MONTH, 2).toFormatter();
-
-
 	public static void main(final String... args) throws IOException
 	{
 		final URL url = Resources.getResource("small-log.txt");
 		final String input = Resources.toString(url, Charsets.UTF_8);
-		Trace2JsonProcessor proc = new Trace2JsonProcessor(new FileReader(new File(url.getFile())), new PrintWriter(System.out));
+		Trace2JsonProcessor proc = new Trace2JsonProcessor(
+				new FileReader(new File(url.getFile())),
+				new FileWriter(new File("src/main/resources/output.txt")));
 		proc.process();
+	}
+
+	public Trace2JsonProcessor(final Reader inputReader, final Writer outputWriter)
+	{
+		this.outputWriter = outputWriter;
+		this.inputReader = inputReader;
+		this.scanner = new Scanner(inputReader);
+
+		this.jsonMapper = new ObjectMapper();
+		this.jsonMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+
+		this.dateTimeFormatters = Arrays
+				.stream(ALLOWED_DATE_FORMATS)
+				.map(df -> DateTimeFormatter.ofPattern(df)).collect(Collectors.toList());
+
 	}
 
 	private void process() throws IOException
 	{
+		final SequenceWriter sequenceWriter = jsonMapper
+				.writer(new MinimalPrettyPrinter(System.getProperty("line.separator")))
+				.writeValues(outputWriter);
+
 		while (scanner.hasNext())
 		{
 			final LocalDateTime start = parseDateTime(scanner.next());
@@ -63,48 +76,31 @@ public class Trace2JsonProcessor
 			final String traceId = scanner.next();
 			final String service = scanner.next();
 			final String[] spans = scanner.next().split("->");
-			String callerSpanId = spans[0];
+			final String callerSpanId = "null".equals(spans[0]) ? null : spans[0];
 			final String spanId = spans[1];
-			if ("null".equals(callerSpanId))
-			{
-				callerSpanId = null;
-			}
+
 			logsProcessor.processCall(new Call(start, end, traceId, service, callerSpanId, spanId));
+
+			sequenceWriter.writeAll(logsProcessor.popReadyTraces(false));
 		}
-
-		Collection<TraceRoot> traceRoots = logsProcessor.popReadyTraces(true);
-		mapper.writer().writeValues(outputWriter).writeAll(traceRoots);
-
+		sequenceWriter.writeAll(logsProcessor.popReadyTraces(true));
 		scanner.close();
 	}
 
 	private LocalDateTime parseDateTime(final String str)
 	{
-		LocalDateTime dateTime;
-		try
-		{
-			dateTime = LocalDateTime.parse(str, dtf);
-		}
-		catch (DateTimeParseException e)
+		for (DateTimeFormatter dtf : dateTimeFormatters)
 		{
 			try
 			{
-				dateTime = LocalDateTime.parse(str, dtf2);
+				return LocalDateTime.parse(str, dtf);
 			}
-			catch (DateTimeParseException ee)
+			catch (DateTimeParseException e)
 			{
-				dateTime = LocalDateTime.parse(str, dtf3);
+				// keep trying
 			}
 		}
-		return dateTime;
+		throw new IllegalArgumentException("Unknown date format: " + str);
 	}
 
-	public Trace2JsonProcessor(final Reader inputReader, final Writer outputWriter)
-	{
-		this.outputWriter = outputWriter;
-		this.inputReader = inputReader;
-		scanner = new Scanner(inputReader);
-		mapper = new ObjectMapper();
-		mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-	}
 }

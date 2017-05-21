@@ -3,7 +3,7 @@ package com.example.trace2json.process;
 import com.example.trace2json.Call;
 import com.example.trace2json.pojo.TraceRoot;
 
-import java.time.LocalTime;
+import java.time.LocalDateTime;
 
 
 /**
@@ -31,5 +31,5 @@ public interface TraceBuilder
 	 *
 	 * @return the timestamp of end time or null
 	 */
-	LocalTime getEndTimeOrNull();
+	LocalDateTime getEndTimeOrNull();
 }

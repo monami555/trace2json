@@ -2,6 +2,7 @@ package com.example.trace2json.process.impl;
 
 
 import com.example.trace2json.Call;
+import com.example.trace2json.pojo.Trace;
 import com.example.trace2json.pojo.TraceRoot;
 
 import org.junit.Assert;
@@ -9,7 +10,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.time.Duration;
-import java.time.LocalTime;
+import java.time.LocalDateTime;
 import java.util.Collection;
 
 
@@ -22,12 +23,12 @@ public class DefaultCallsProcessorTest
 	private static final String SERVICE = "some-service";
 
 	private DefaultCallsProcessor processor = new DefaultCallsProcessor();
-	private LocalTime startTime;
+	private LocalDateTime startTime;
 
 	@Before
 	public void setUp()
 	{
-		startTime = LocalTime.of(0, 1);
+		startTime = LocalDateTime.of(2000, 12, 1, 0, 1);
 		processor.setEpsilon(Duration.ofMinutes(1));
 	}
 
@@ -68,7 +69,26 @@ public class DefaultCallsProcessorTest
 	@Test
 	public void testPopsFinishedOldTrace()
 	{
-		processor.processCall(new Call(startTime, startTime.plusMinutes(1), TRACE1, SERVICE, SPAN1, SPAN2));
+		processor.processCall(new Call(startTime, startTime.plusMinutes(1), TRACE1, SERVICE, SPAN2, "cc"));
+		processor.processCall(new Call(startTime, startTime.plusMinutes(2), TRACE1, SERVICE, SPAN2, "dd"));
+		processor.processCall(new Call(startTime, startTime.plusMinutes(3), TRACE1, SERVICE, null, SPAN2));
+		processor.processCall(new Call(startTime, startTime.plusMinutes(5), TRACE2, SERVICE, SPAN1, SPAN2));
+
+		final Collection<TraceRoot> traces = processor.popReadyTraces();
+		Assert.assertEquals(1, traces.size());
+		Assert.assertEquals(0, processor.popReadyTraces().size());
+		final TraceRoot traceRoot = traces.iterator().next();
+		Assert.assertEquals(TRACE1, traceRoot.getTrace());
+		final Trace trace = traceRoot.getRoot();
+		Assert.assertEquals(null, trace.getCallerSpanId());
+		Assert.assertEquals(SPAN2, trace.getSpanId());
+		Assert.assertEquals(2, trace.getCalls().size());
+	}
+
+	@Test
+	public void tesCircularLogsAreHandled()
+	{
+		processor.processCall(new Call(startTime, startTime.plusMinutes(1), TRACE1, SERVICE, SPAN2, SPAN1));
 		processor.processCall(new Call(startTime, startTime.plusMinutes(2), TRACE1, SERVICE, SPAN1, SPAN2));
 		processor.processCall(new Call(startTime, startTime.plusMinutes(3), TRACE1, SERVICE, null, SPAN2));
 		processor.processCall(new Call(startTime, startTime.plusMinutes(5), TRACE2, SERVICE, SPAN1, SPAN2));

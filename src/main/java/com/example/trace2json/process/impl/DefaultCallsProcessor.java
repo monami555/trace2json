@@ -6,7 +6,7 @@ import com.example.trace2json.process.CallsProcessor;
 import com.example.trace2json.process.TraceBuilder;
 
 import java.time.Duration;
-import java.time.LocalTime;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -19,7 +19,7 @@ public class DefaultCallsProcessor implements CallsProcessor
 	private Duration epsilon = DEFAULT_TRACE_FINISHED_AFTER;
 
 	private Map<String, TraceBuilder> traceBuilders = new ConcurrentHashMap<>();
-	private LocalTime lastEndTime;
+	private LocalDateTime lastEndTime;
 
 	@Override
 	public void processCall(Call call)
@@ -28,11 +28,12 @@ public class DefaultCallsProcessor implements CallsProcessor
 		{
 			lastEndTime = call.getEndTime();
 		}
-		TraceBuilder traceBuilder = traceBuilders.get(call.getTraceId());
+		final String traceId = call.getTraceId();
+		TraceBuilder traceBuilder = traceBuilders.get(traceId);
 		if (traceBuilder == null)
 		{
-			traceBuilder = new DefaultTraceBuilder(call.getTraceId());
-			traceBuilders.put(call.getTraceId(), new DefaultTraceBuilder(call.getTraceId()));
+			traceBuilder = new DefaultTraceBuilder(traceId);
+			traceBuilders.put(traceId, traceBuilder);
 		}
 		traceBuilder.processCall(call);
 	}
@@ -52,7 +53,7 @@ public class DefaultCallsProcessor implements CallsProcessor
 		return result;
 	}
 
-	public LocalTime getLastEndTime()
+	public LocalDateTime getLastEndTime()
 	{
 		return lastEndTime;
 	}
@@ -62,7 +63,7 @@ public class DefaultCallsProcessor implements CallsProcessor
 		this.epsilon = epsilon;
 	}
 
-	private boolean isTraceOld(LocalTime endTime)
+	private boolean isTraceOld(LocalDateTime endTime)
 	{
 		return endTime != null && endTime.plus(epsilon).isBefore(lastEndTime);
 	}

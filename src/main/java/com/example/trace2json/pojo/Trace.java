@@ -19,10 +19,10 @@ public class Trace
 
 	private String service;
 
-	@JsonSerialize(using = DateTimeSerialiser.class)
+	@JsonSerialize(using = OutputDateTimeSerialiser.class)
 	private LocalDateTime start;
 
-	@JsonSerialize(using = DateTimeSerialiser.class)
+	@JsonSerialize(using = OutputDateTimeSerialiser.class)
 	private LocalDateTime end;
 
 	private Collection<Trace> calls;

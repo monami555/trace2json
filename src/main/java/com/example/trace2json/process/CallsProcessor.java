@@ -25,7 +25,7 @@ public interface CallsProcessor
 	/**
 	 * Maximum number of traces kept in memory in parallel before the finished ones are removed.
 	 */
-	int DEFAULT_TRACE_NUMBER_BUFFER = 100;
+	int DEFAULT_TRACE_NUMBER_BUFFER = 10000;
 
 	void processCall(Call call);
 

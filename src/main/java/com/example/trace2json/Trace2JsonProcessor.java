@@ -1,5 +1,6 @@
 package com.example.trace2json;
 
+import com.example.trace2json.pojo.TraceRoot;
 import com.example.trace2json.process.CallsProcessor;
 import com.example.trace2json.process.impl.DefaultCallsProcessor;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -15,6 +16,7 @@ import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
 import java.net.URL;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -39,7 +41,7 @@ public class Trace2JsonProcessor
 
 	public static void main(final String... args) throws IOException
 	{
-		final URL url = Resources.getResource("medium-log.txt");
+		final URL url = Resources.getResource("small-log.txt");
 		Trace2JsonProcessor proc = new Trace2JsonProcessor(
 				new FileReader(new File(url.getFile())),
 				new FileWriter(new File("src/main/resources/output.txt")));
@@ -48,10 +50,8 @@ public class Trace2JsonProcessor
 
 	public Trace2JsonProcessor(final Reader inputReader, final Writer outputWriter)
 	{
-
 		this.jsonMapper = new ObjectMapper();
 		this.jsonMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-
 
 		this.outputWriter = outputWriter;
 		this.scanner = new Scanner(inputReader);
@@ -64,6 +64,7 @@ public class Trace2JsonProcessor
 
 	private void process()
 	{
+
 		SequenceWriter writer = null;
 		try
 		{
@@ -71,15 +72,22 @@ public class Trace2JsonProcessor
 					.writer(new MinimalPrettyPrinter(System.getProperty("line.separator")))
 					.writeValues(outputWriter);
 
+			final LocalDateTime startTime = LocalDateTime.now();
+
 			while (scanner.hasNext())
 			{
 				final Call call = readCallLine(scanner);
 				logsProcessor.processCall(call);
-				writer.writeAll(logsProcessor.popReadyTraces(false));
+				final Collection<TraceRoot> newTraces = logsProcessor.popReadyTraces(false);
+				//System.err.println("  Found new " + newTraces.size() + " traces");
+				writer.writeAll(newTraces);
 			}
 
 			writer.writeAll(logsProcessor.popReadyTraces(true));
 			writer.close();
+
+			System.err.println(
+					"Processing took: " + Duration.between(startTime, LocalDateTime.now()).toMillis() + " ms");
 		}
 		catch (final IOException e)
 		{

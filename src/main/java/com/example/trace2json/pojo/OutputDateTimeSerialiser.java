@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 
-public class DateTimeSerialiser extends JsonSerializer<LocalDateTime>
+public class OutputDateTimeSerialiser extends JsonSerializer<LocalDateTime>
 {
 	private DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
 

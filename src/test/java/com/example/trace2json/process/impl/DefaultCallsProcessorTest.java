@@ -54,7 +54,7 @@ public class DefaultCallsProcessorTest
 	{
 		processor.processCall(new Call(startTime, startTime.plusMinutes(1), TRACE1, SERVICE, SPAN1, SPAN2));
 		processor.processCall(new Call(startTime, startTime.plusMinutes(2), TRACE1, SERVICE, SPAN1, SPAN2));
-		Assert.assertEquals(0, processor.popReadyTraces().size());
+		Assert.assertEquals(0, processor.popReadyTraces(false).size());
 	}
 
 	@Test
@@ -63,7 +63,7 @@ public class DefaultCallsProcessorTest
 		processor.processCall(new Call(startTime, startTime.plusMinutes(1), TRACE1, SERVICE, SPAN1, SPAN2));
 		processor.processCall(new Call(startTime, startTime.plusMinutes(2), TRACE1, SERVICE, SPAN1, SPAN2));
 		processor.processCall(new Call(startTime, startTime.plusMinutes(3), TRACE1, SERVICE, null, SPAN2));
-		Assert.assertEquals(0, processor.popReadyTraces().size());
+		Assert.assertEquals(0, processor.popReadyTraces(false).size());
 	}
 
 	@Test
@@ -74,17 +74,17 @@ public class DefaultCallsProcessorTest
 		processor.processCall(new Call(startTime, startTime.plusMinutes(3), TRACE1, SERVICE, null, SPAN2));
 		processor.processCall(new Call(startTime, startTime.plusMinutes(5), TRACE2, SERVICE, SPAN1, SPAN2));
 
-		final Collection<TraceRoot> traces = processor.popReadyTraces();
+		final Collection<TraceRoot> traces = processor.popReadyTraces(false);
 		Assert.assertEquals(1, traces.size());
-		Assert.assertEquals(0, processor.popReadyTraces().size());
+		Assert.assertEquals(0, processor.popReadyTraces(false).size());
 		final TraceRoot traceRoot = traces.iterator().next();
-		Assert.assertEquals(TRACE1, traceRoot.getTrace());
+		Assert.assertEquals(TRACE1, traceRoot.getId());
 		final Trace trace = traceRoot.getRoot();
 		Assert.assertEquals(null, trace.getCallerSpanId());
-		Assert.assertEquals(SPAN2, trace.getSpanId());
+		Assert.assertEquals(SPAN2, trace.getSpan());
 		Assert.assertEquals(2, trace.getCalls().size());
 	}
-	
+
 	@Test
 	public void tesCircularLogsAreHandled()
 	{
@@ -92,9 +92,9 @@ public class DefaultCallsProcessorTest
 		processor.processCall(new Call(startTime, startTime.plusMinutes(2), TRACE1, SERVICE, SPAN1, SPAN2));
 		processor.processCall(new Call(startTime, startTime.plusMinutes(3), TRACE1, SERVICE, null, SPAN2));
 		processor.processCall(new Call(startTime, startTime.plusMinutes(5), TRACE2, SERVICE, SPAN1, SPAN2));
-		final Collection<TraceRoot> traces = processor.popReadyTraces();
+		final Collection<TraceRoot> traces = processor.popReadyTraces(false);
 		Assert.assertEquals(1, traces.size());
-		Assert.assertEquals(0, processor.popReadyTraces().size());
-		Assert.assertEquals(TRACE1, traces.iterator().next().getTrace());
+		Assert.assertEquals(0, processor.popReadyTraces(false).size());
+		Assert.assertEquals(TRACE1, traces.iterator().next().getId());
 	}
 }

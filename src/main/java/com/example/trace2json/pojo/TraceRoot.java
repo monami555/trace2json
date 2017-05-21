@@ -2,12 +2,12 @@ package com.example.trace2json.pojo;
 
 public class TraceRoot
 {
-	private String trace;
+	private String id;
 	private Trace root;
 
-	public String getTrace()
+	public String getId()
 	{
-		return trace;
+		return id;
 	}
 
 	public Trace getRoot()
@@ -15,9 +15,9 @@ public class TraceRoot
 		return root;
 	}
 
-	public void setTrace(final String trace)
+	public void setId(final String id)
 	{
-		this.trace = trace;
+		this.id = id;
 	}
 
 	public void setRoot(final Trace root)

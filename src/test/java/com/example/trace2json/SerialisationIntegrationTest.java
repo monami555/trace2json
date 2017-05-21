@@ -51,7 +51,7 @@ public class SerialisationIntegrationTest
 	private TraceRoot buildTraceRoot()
 	{
 		final TraceRoot traceRoot = new TraceRoot();
-		traceRoot.setTrace("trace1");
+		traceRoot.setId("trace1");
 		final Trace frontendTrace = new Trace();
 		traceRoot.setRoot(frontendTrace);
 

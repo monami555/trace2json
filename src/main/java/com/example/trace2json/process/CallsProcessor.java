@@ -20,9 +20,9 @@ public interface CallsProcessor
 	 * If a log line belonging to a trace have not shown up after this timestamp time,
 	 * the trace is considered to be finished.
 	 */
-	Duration DEFAULT_TRACE_FINISHED_AFTER = Duration.ofMillis(100);
+	Duration DEFAULT_TRACE_FINISHED_AFTER = Duration.ofMillis(10000);
 
 	void processCall(Call call);
 
-	Collection<TraceRoot> popReadyTraces();
+	Collection<TraceRoot> popReadyTraces(final boolean force);
 }

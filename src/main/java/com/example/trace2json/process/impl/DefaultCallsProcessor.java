@@ -39,13 +39,13 @@ public class DefaultCallsProcessor implements CallsProcessor
 	}
 
 	@Override
-	public Collection<TraceRoot> popReadyTraces()
+	public Collection<TraceRoot> popReadyTraces(final boolean force)
 	{
 		// TODO make parallelizable!
 		List<TraceRoot> result = new ArrayList<>();
 		traceBuilders
 				.forEach((traceId, builder) -> {
-					if (isTraceOld(builder.getEndTimeOrNull()))
+					if (force || isTraceOld(builder.getEndTimeOrNull()))
 					{
 						result.add(traceBuilders.remove(traceId).buildTrace());
 					}

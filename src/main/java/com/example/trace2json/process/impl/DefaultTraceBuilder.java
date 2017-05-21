@@ -26,7 +26,7 @@ public class DefaultTraceBuilder implements TraceBuilder
 	public DefaultTraceBuilder(final String traceId)
 	{
 		this.rootTrace = new TraceRoot();
-		this.rootTrace.setTrace(traceId);
+		this.rootTrace.setId(traceId);
 		this.traces = new ArrayList<>();
 	}
 
@@ -37,7 +37,7 @@ public class DefaultTraceBuilder implements TraceBuilder
 		trace.setEnd(call.getEndTime());
 		trace.setService(call.getService());
 		trace.setStart(call.getStartTime());
-		trace.setSpanId(call.getSpanId());
+		trace.setSpan(call.getSpanId());
 		trace.setCallerSpanId(call.getCallerSpanId());
 		trace.setOrphaned(true);
 		trace.setCalls(new ArrayList<>());
@@ -80,7 +80,7 @@ public class DefaultTraceBuilder implements TraceBuilder
 
 		Optional<Trace> maybeATrace = traces
 				.stream()
-				.filter(t -> t.getSpanId().equals(spanId))
+				.filter(t -> t.getSpan().equals(spanId))
 				.findAny();
 
 		if (!maybeATrace.isPresent())
@@ -104,6 +104,6 @@ public class DefaultTraceBuilder implements TraceBuilder
 
 	@Override
 	public String toString() {
-		return rootTrace.getTrace();
+		return rootTrace.getId();
 	}
 }

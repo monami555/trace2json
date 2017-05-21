@@ -1,8 +1,12 @@
-package com.example.trace2json.pojo;
+package com.example.trace2json.trace;
 
+/**
+ * POJO meant to be serialised by jackson.
+ */
 public class TraceRoot
 {
 	private String id;
+
 	private Trace root;
 
 	public String getId()

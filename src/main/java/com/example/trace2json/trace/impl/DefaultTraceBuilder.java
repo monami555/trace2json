@@ -1,10 +1,11 @@
-package com.example.trace2json.process.impl;
+package com.example.trace2json.trace.impl;
 
 
-import com.example.trace2json.Call;
-import com.example.trace2json.pojo.Trace;
-import com.example.trace2json.pojo.TraceRoot;
-import com.example.trace2json.process.TraceBuilder;
+import com.example.trace2json.LogLine;
+import com.example.trace2json.trace.Trace;
+import com.example.trace2json.trace.TraceBuilder;
+import com.example.trace2json.trace.TraceIncompleteException;
+import com.example.trace2json.trace.TraceRoot;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -31,20 +32,20 @@ public class DefaultTraceBuilder implements TraceBuilder
 	}
 
 	@Override
-	public void processCall(final Call call)
+	public void processCall(final LogLine logLine)
 	{
 		final Trace trace = new Trace();
-		trace.setEnd(call.getEndTime());
-		trace.setService(call.getService());
-		trace.setStart(call.getStartTime());
-		trace.setSpan(call.getSpanId());
-		trace.setCallerSpanId(call.getCallerSpanId());
+		trace.setEnd(logLine.getEndTime());
+		trace.setService(logLine.getService());
+		trace.setStart(logLine.getStartTime());
+		trace.setSpan(logLine.getSpanId());
+		trace.setCallerSpanId(logLine.getCallerSpanId());
 		trace.setOrphaned(true);
 		trace.setCalls(new ArrayList<>());
 
-		if (call.getCallerSpanId() == null)
+		if (logLine.getCallerSpanId() == null)
 		{
-			this.endTime = call.getEndTime();
+			this.endTime = logLine.getEndTime();
 			this.rootTrace.setRoot(trace);
 			trace.setOrphaned(false);
 		}
@@ -69,7 +70,7 @@ public class DefaultTraceBuilder implements TraceBuilder
 		}
 		if (spanToTrace.values().stream().filter(t -> t.isOrphaned()).findAny().isPresent())
 		{
-			throw new IllegalArgumentException("The trace '" + rootTrace.getId() + "' is not finished.");
+			throw new TraceIncompleteException("The trace '" + rootTrace.getId() + "' is not complete.");
 		}
 		return rootTrace;
 	}

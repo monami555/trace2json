@@ -1,7 +1,7 @@
 package com.example.trace2json;
 
-import com.example.trace2json.pojo.Trace;
-import com.example.trace2json.pojo.TraceRoot;
+import com.example.trace2json.trace.Trace;
+import com.example.trace2json.trace.TraceRoot;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Charsets;

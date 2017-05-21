@@ -1,4 +1,4 @@
-package com.example.trace2json.pojo;
+package com.example.trace2json.trace;
 
 
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -11,14 +11,17 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 
+/**
+ * Custom {@link JsonSerializer} that defines how to serialise {@link LocalDateTime} fields.
+ */
 public class OutputDateTimeSerialiser extends JsonSerializer<LocalDateTime>
 {
 	private DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
 
 	@Override
-	public void serialize(LocalDateTime arg0, JsonGenerator arg1, SerializerProvider arg2)
+	public void serialize(LocalDateTime dateTime, JsonGenerator jsonGenerator, SerializerProvider serializerProvider)
 			throws IOException, JsonProcessingException
 	{
-		arg1.writeString(arg0.format(dtf));
+		jsonGenerator.writeString(dateTime.format(dtf));
 	}
 }

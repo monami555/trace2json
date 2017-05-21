@@ -4,9 +4,9 @@ import java.time.LocalDateTime;
 
 
 /**
- * Immutable.
+ * Immutable POJO describing a single log line.
  */
-public class Call
+public class LogLine
 {
 	private LocalDateTime startTime;
 	private LocalDateTime endTime;
@@ -15,7 +15,7 @@ public class Call
 	private String callerSpanId;
 	private String spanId;
 
-	public Call(final LocalDateTime startTime,
+	public LogLine(final LocalDateTime startTime,
 			final LocalDateTime endTime,
 			final String traceId,
 			final String service,

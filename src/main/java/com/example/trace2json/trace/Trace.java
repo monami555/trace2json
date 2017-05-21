@@ -1,4 +1,4 @@
-package com.example.trace2json.pojo;
+package com.example.trace2json.trace;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -7,6 +7,9 @@ import java.time.LocalDateTime;
 import java.util.Collection;
 
 
+/**
+ * POJO meant to be serialised by jackson, containing helper information.
+ */
 public class Trace
 {
 	@JsonIgnore

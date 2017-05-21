@@ -1,9 +1,9 @@
-package com.example.trace2json.process.impl;
+package com.example.trace2json.impl;
 
 
-import com.example.trace2json.Call;
-import com.example.trace2json.pojo.Trace;
-import com.example.trace2json.pojo.TraceRoot;
+import com.example.trace2json.LogLine;
+import com.example.trace2json.trace.Trace;
+import com.example.trace2json.trace.TraceRoot;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 import java.util.Collection;
 
 
-public class DefaultCallsProcessorTest
+public class DefaultLogLineProcessorTest
 {
 	private static final String TRACE1 = "trace1";
 	private static final String TRACE2 = "trace2";
@@ -22,7 +22,7 @@ public class DefaultCallsProcessorTest
 	private static final String SPAN2 = "bb";
 	private static final String SERVICE = "some-service";
 
-	private DefaultCallsProcessor processor = new DefaultCallsProcessor();
+	private DefaultLogLineProcessor processor = new DefaultLogLineProcessor();
 	private LocalDateTime startTime;
 
 	@Before
@@ -37,52 +37,52 @@ public class DefaultCallsProcessorTest
 	public void testLastEndTimeUpdated()
 	{
 		Assert.assertEquals(null, processor.getLastEndTime());
-		processor.processCall(new Call(startTime, startTime.plusMinutes(1), TRACE1, SERVICE, SPAN1, SPAN2));
+		processor.processLogLine(new LogLine(startTime, startTime.plusMinutes(1), TRACE1, SERVICE, SPAN1, SPAN2));
 		Assert.assertEquals(startTime.plusMinutes(1), processor.getLastEndTime());
-		processor.processCall(new Call(startTime, startTime.plusMinutes(2), TRACE2, SERVICE, SPAN1, SPAN2));
+		processor.processLogLine(new LogLine(startTime, startTime.plusMinutes(2), TRACE2, SERVICE, SPAN1, SPAN2));
 		Assert.assertEquals(startTime.plusMinutes(2), processor.getLastEndTime());
 	}
 
 	@Test
 	public void testLastEndTimeMissing()
 	{
-		processor.processCall(new Call(startTime, null, TRACE1, SERVICE, SPAN1, SPAN2));
+		processor.processLogLine(new LogLine(startTime, null, TRACE1, SERVICE, SPAN1, SPAN2));
 		Assert.assertEquals(null, processor.getLastEndTime());
 	}
 
 	@Test
 	public void testDoesNotPopUnfinishedTrace()
 	{
-		processor.processCall(new Call(startTime, startTime.plusMinutes(1), TRACE1, SERVICE, SPAN1, SPAN2));
-		processor.processCall(new Call(startTime, startTime.plusMinutes(2), TRACE1, SERVICE, SPAN1, SPAN2));
+		processor.processLogLine(new LogLine(startTime, startTime.plusMinutes(1), TRACE1, SERVICE, SPAN1, SPAN2));
+		processor.processLogLine(new LogLine(startTime, startTime.plusMinutes(2), TRACE1, SERVICE, SPAN1, SPAN2));
 		Assert.assertEquals(0, processor.popReadyTraces(false).size());
 	}
 
 	@Test
 	public void testDoesNotPopFinishedTraceTooEarly()
 	{
-		processor.processCall(new Call(startTime, startTime.plusMinutes(1), TRACE1, SERVICE, SPAN1, SPAN2));
-		processor.processCall(new Call(startTime, startTime.plusMinutes(2), TRACE1, SERVICE, SPAN1, SPAN2));
-		processor.processCall(new Call(startTime, startTime.plusMinutes(3), TRACE1, SERVICE, null, SPAN2));
+		processor.processLogLine(new LogLine(startTime, startTime.plusMinutes(1), TRACE1, SERVICE, SPAN1, SPAN2));
+		processor.processLogLine(new LogLine(startTime, startTime.plusMinutes(2), TRACE1, SERVICE, SPAN1, SPAN2));
+		processor.processLogLine(new LogLine(startTime, startTime.plusMinutes(3), TRACE1, SERVICE, null, SPAN2));
 		Assert.assertEquals(0, processor.popReadyTraces(false).size());
 	}
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testDoesPopUnfinishedTraceWhenForced()
 	{
-		processor.processCall(new Call(startTime, startTime.plusMinutes(1), TRACE1, SERVICE, SPAN1, SPAN2));
-		processor.processCall(new Call(startTime, startTime.plusMinutes(2), TRACE1, SERVICE, SPAN1, SPAN2));
-		processor.processCall(new Call(startTime, startTime.plusMinutes(3), TRACE1, SERVICE, null, SPAN2));
+		processor.processLogLine(new LogLine(startTime, startTime.plusMinutes(1), TRACE1, SERVICE, SPAN1, SPAN2));
+		processor.processLogLine(new LogLine(startTime, startTime.plusMinutes(2), TRACE1, SERVICE, SPAN1, SPAN2));
+		processor.processLogLine(new LogLine(startTime, startTime.plusMinutes(3), TRACE1, SERVICE, null, SPAN2));
 		processor.popReadyTraces(true).size();
 	}
 
 	@Test
 	public void testPopsFinishedOldTrace()
 	{
-		processor.processCall(new Call(startTime, startTime.plusMinutes(1), TRACE1, SERVICE, SPAN2, "cc"));
-		processor.processCall(new Call(startTime, startTime.plusMinutes(2), TRACE1, SERVICE, SPAN2, "dd"));
-		processor.processCall(new Call(startTime, startTime.plusMinutes(3), TRACE1, SERVICE, null, SPAN2));
-		processor.processCall(new Call(startTime, startTime.plusMinutes(5), TRACE2, SERVICE, SPAN1, SPAN2));
+		processor.processLogLine(new LogLine(startTime, startTime.plusMinutes(1), TRACE1, SERVICE, SPAN2, "cc"));
+		processor.processLogLine(new LogLine(startTime, startTime.plusMinutes(2), TRACE1, SERVICE, SPAN2, "dd"));
+		processor.processLogLine(new LogLine(startTime, startTime.plusMinutes(3), TRACE1, SERVICE, null, SPAN2));
+		processor.processLogLine(new LogLine(startTime, startTime.plusMinutes(5), TRACE2, SERVICE, SPAN1, SPAN2));
 
 		final Collection<TraceRoot> traces = processor.popReadyTraces(false);
 		Assert.assertEquals(1, traces.size());
@@ -100,10 +100,10 @@ public class DefaultCallsProcessorTest
 	@Test
 	public void tesCircularLogsAreHandled()
 	{
-		processor.processCall(new Call(startTime, startTime.plusMinutes(1), TRACE1, SERVICE, SPAN2, SPAN1));
-		processor.processCall(new Call(startTime, startTime.plusMinutes(2), TRACE1, SERVICE, SPAN1, SPAN2));
-		processor.processCall(new Call(startTime, startTime.plusMinutes(3), TRACE1, SERVICE, null, SPAN2));
-		processor.processCall(new Call(startTime, startTime.plusMinutes(5), TRACE2, SERVICE, SPAN1, SPAN2));
+		processor.processLogLine(new LogLine(startTime, startTime.plusMinutes(1), TRACE1, SERVICE, SPAN2, SPAN1));
+		processor.processLogLine(new LogLine(startTime, startTime.plusMinutes(2), TRACE1, SERVICE, SPAN1, SPAN2));
+		processor.processLogLine(new LogLine(startTime, startTime.plusMinutes(3), TRACE1, SERVICE, null, SPAN2));
+		processor.processLogLine(new LogLine(startTime, startTime.plusMinutes(5), TRACE2, SERVICE, SPAN1, SPAN2));
 
 		final Collection<TraceRoot> traces = processor.popReadyTraces(false);
 		Assert.assertEquals(1, traces.size());

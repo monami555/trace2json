@@ -1,9 +1,10 @@
-package com.example.trace2json.process.impl;
+package com.example.trace2json.impl;
 
-import com.example.trace2json.Call;
-import com.example.trace2json.pojo.TraceRoot;
-import com.example.trace2json.process.CallsProcessor;
-import com.example.trace2json.process.TraceBuilder;
+import com.example.trace2json.LogLine;
+import com.example.trace2json.LogLineProcessor;
+import com.example.trace2json.trace.TraceBuilder;
+import com.example.trace2json.trace.TraceRoot;
+import com.example.trace2json.trace.impl.DefaultTraceBuilder;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -15,29 +16,29 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 
-public class DefaultCallsProcessor implements CallsProcessor
+public class DefaultLogLineProcessor implements LogLineProcessor
 {
-	private Duration epsilon = DEFAULT_TRACE_FINISHED_AFTER;
-	private int traceNumberBuffer = DEFAULT_TRACE_NUMBER_BUFFER;
+	private static Duration epsilon = DEFAULT_TRACE_FINISHED_AFTER;
+	private static int traceNumberBuffer = DEFAULT_TRACE_NUMBER_BUFFER;
 
-	private Map<String, TraceBuilder> traceBuilders = new ConcurrentHashMap<>();
-	private LocalDateTime lastEndTime;
+	private static Map<String, TraceBuilder> traceBuilders = new ConcurrentHashMap<>();
+	private static LocalDateTime lastEndTime;
 
 	@Override
-	public void processCall(Call call)
+	public void processLogLine(LogLine logLine)
 	{
-		if (lastEndTime == null || call.getEndTime().isAfter(lastEndTime))
+		if (lastEndTime == null || logLine.getEndTime().isAfter(lastEndTime))
 		{
-			lastEndTime = call.getEndTime();
+			lastEndTime = logLine.getEndTime();
 		}
-		final String traceId = call.getTraceId();
+		final String traceId = logLine.getTraceId();
 		TraceBuilder traceBuilder = traceBuilders.get(traceId);
 		if (traceBuilder == null)
 		{
 			traceBuilder = new DefaultTraceBuilder(traceId);
 			traceBuilders.put(traceId, traceBuilder);
 		}
-		traceBuilder.processCall(call);
+		traceBuilder.processCall(logLine);
 	}
 
 	@Override
@@ -45,7 +46,6 @@ public class DefaultCallsProcessor implements CallsProcessor
 	{
 		if (force || traceBuilders.size() > traceNumberBuffer)
 		{
-			// TODO make parallelizable!
 			final List<TraceRoot> result = new ArrayList<>();
 			traceBuilders
 					.forEach((traceId, builder) -> {
@@ -73,7 +73,8 @@ public class DefaultCallsProcessor implements CallsProcessor
 		this.epsilon = epsilon;
 	}
 
-	public void setTraceNumberBuffer(final int traceNumberBuffer) {
+	public void setTraceNumberBuffer(final int traceNumberBuffer)
+	{
 		this.traceNumberBuffer = traceNumberBuffer;
 	}
 

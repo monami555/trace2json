@@ -1,20 +1,13 @@
-package com.example.trace2json.process;
+package com.example.trace2json;
 
-import com.example.trace2json.Call;
-import com.example.trace2json.pojo.TraceRoot;
+import com.example.trace2json.trace.TraceRoot;
 
 import java.time.Duration;
 import java.util.Collection;
 
 
-/**
- * Processes the input log lines of format:
- *
- * [start-timestamp] [end-timestamp] [trace] [service-name] [caller-span]->[span]
- *
- * and outputs log traces as JSON.
- */
-public interface CallsProcessor
+
+public interface LogLineProcessor
 {
 	/**
 	 * If a log line belonging to a trace have not shown up after this timestamp time,
@@ -27,7 +20,7 @@ public interface CallsProcessor
 	 */
 	int DEFAULT_TRACE_NUMBER_BUFFER = 10000;
 
-	void processCall(Call call);
+	void processLogLine(LogLine logLine);
 
 	Collection<TraceRoot> popReadyTraces(final boolean force);
 }

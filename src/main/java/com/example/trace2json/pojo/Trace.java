@@ -16,7 +16,7 @@ public class Trace
 	private String spanId;
 
 	@JsonIgnore
-	private boolean isOrphaned;
+	private boolean orphaned;
 
 	private String service;
 
@@ -29,7 +29,7 @@ public class Trace
 	private Collection<Trace> calls;
 
 	public boolean isOrphaned() {
-		return isOrphaned;
+		return orphaned;
 	}
 
 	public String getCallerSpanId()
@@ -62,8 +62,8 @@ public class Trace
 		return calls;
 	}
 
-	public void setIsOrphaned(final boolean isOrphaned) {
-		this.isOrphaned = isOrphaned;
+	public void setOrphaned(final boolean isOrphaned) {
+		this.orphaned = isOrphaned;
 	}
 
 	public void setSpanId(final String spanId)
@@ -101,7 +101,7 @@ public class Trace
 		return "Trace{" +
 				"callerSpanId='" + callerSpanId + '\'' +
 				", spanId='" + spanId + '\'' +
-				", isOrphaned=" + isOrphaned +
+				", orphaned=" + orphaned +
 				", service='" + service + '\'' +
 				'}';
 	}

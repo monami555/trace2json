@@ -4,7 +4,6 @@ import com.example.trace2json.pojo.Trace;
 import com.example.trace2json.pojo.TraceRoot;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.base.Charsets;
 import com.google.common.io.Resources;
 
@@ -33,7 +32,6 @@ public class SerialisationIntegrationTest
 	{
 		mapper = new ObjectMapper();
 		mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-		mapper.registerModule(new JavaTimeModule());
 	}
 
 	@Test

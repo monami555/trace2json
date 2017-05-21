@@ -84,7 +84,7 @@ public class DefaultCallsProcessorTest
 		Assert.assertEquals(SPAN2, trace.getSpanId());
 		Assert.assertEquals(2, trace.getCalls().size());
 	}
-
+	
 	@Test
 	public void tesCircularLogsAreHandled()
 	{

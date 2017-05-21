@@ -39,14 +39,14 @@ public class DefaultTraceBuilder implements TraceBuilder
 		trace.setStart(call.getStartTime());
 		trace.setSpanId(call.getSpanId());
 		trace.setCallerSpanId(call.getCallerSpanId());
-		trace.setIsOrphaned(true);
+		trace.setOrphaned(true);
 		trace.setCalls(new ArrayList<>());
 
 		if (call.getCallerSpanId() == null)
 		{
 			this.endTime = call.getEndTime();
 			this.rootTrace.setRoot(trace);
-			trace.setIsOrphaned(false);
+			trace.setOrphaned(false);
 		}
 		traces.add(trace);
 	}
@@ -60,7 +60,7 @@ public class DefaultTraceBuilder implements TraceBuilder
 			if (predecessor.isPresent())
 			{
 				predecessor.get().getCalls().add(trace);
-				trace.setIsOrphaned(false);
+				trace.setOrphaned(false);
 			}
 		}
 		if (traces.stream().filter(t -> t.isOrphaned()).findAny().isPresent())

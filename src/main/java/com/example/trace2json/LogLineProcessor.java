@@ -20,7 +20,19 @@ public interface LogLineProcessor
 	 */
 	int DEFAULT_TRACE_NUMBER_BUFFER = 10000;
 
+	/**
+	 * Process the log line.
+	 *
+	 * @param logLine the log line
+	 */
 	void processLogLine(LogLine logLine);
 
+	/**
+	 * Remove and return the trace trees that have enough information and can be safely assumed to be complete,
+	 * according to {@link #DEFAULT_TRACE_FINISHED_AFTER}.
+	 *
+	 * @param force remove and return all the trace trees, even if they are not sure to be complete
+	 * @return the requested trace trees
+	 */
 	Collection<TraceRoot> popReadyTraces(final boolean force);
 }

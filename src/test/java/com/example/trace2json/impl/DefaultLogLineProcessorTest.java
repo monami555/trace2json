@@ -14,6 +14,10 @@ import java.time.LocalDateTime;
 import java.util.Collection;
 
 
+// A factory pattern could have been used in {@link DefaultLogLineProcessor}, or Spring Framework in order to
+// inject mock TraceBuilders, so that we would have a truly unit test here.
+// Currently it is partially an integration test.
+
 public class DefaultLogLineProcessorTest
 {
 	private static final String TRACE1 = "trace1";
@@ -22,13 +26,14 @@ public class DefaultLogLineProcessorTest
 	private static final String SPAN2 = "bb";
 	private static final String SERVICE = "some-service";
 
-	private DefaultLogLineProcessor processor = new DefaultLogLineProcessor();
+	private DefaultLogLineProcessor processor;
 	private LocalDateTime startTime;
 
 	@Before
 	public void setUp()
 	{
 		startTime = LocalDateTime.of(2000, 12, 1, 0, 1);
+		processor = new DefaultLogLineProcessor();
 		processor.setEpsilon(Duration.ofMinutes(1));
 		processor.setTraceNumberBuffer(0);
 	}

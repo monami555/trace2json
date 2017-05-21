@@ -16,6 +16,17 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 
+/**
+ * Processes a single line of input.
+ *
+ * For each line the {@link #lastEndTime} is recorded, in order to later judge which trace trees may indeed be finished
+ * in the {@link #popReadyTraces} method (there is still a slight chance of an extra log line about same trace coming
+ * after the end of the first call with this trace id), assuming a delay of {@link #epsilon}.
+ *
+ * For each line a {@link TraceBuilder} is looked up by the trace ID, or created if it doesn't exist. The trace
+ * builder takes care of further processing of the log.
+ *
+ */
 public class DefaultLogLineProcessor implements LogLineProcessor
 {
 	private static Duration epsilon = DEFAULT_TRACE_FINISHED_AFTER;
@@ -51,8 +62,7 @@ public class DefaultLogLineProcessor implements LogLineProcessor
 					.forEach((traceId, builder) -> {
 						if (force || isTraceOld(builder.getEndTimeOrNull()))
 						{
-							result.add(traceBuilders.remove(traceId)
-									.buildTrace());
+							result.add(traceBuilders.remove(traceId).buildTrace());
 						}
 					});
 			return result;

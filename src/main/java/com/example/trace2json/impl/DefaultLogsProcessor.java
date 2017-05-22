@@ -4,7 +4,9 @@ import com.example.trace2json.LogLine;
 import com.example.trace2json.LogLineInvalidException;
 import com.example.trace2json.LogLineProcessor;
 import com.example.trace2json.LogsProcessor;
+import com.example.trace2json.Stats;
 import com.example.trace2json.trace.TraceInvalidException;
+import com.example.trace2json.trace.TraceRoot;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.util.MinimalPrettyPrinter;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,12 +16,16 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 
@@ -47,39 +53,40 @@ public class DefaultLogsProcessor implements LogsProcessor
 						.writer(new MinimalPrettyPrinter(System.getProperty("line.separator")))
 						.writeValues(outputWriter))
 		{
-			final LocalDateTime startTime = LocalDateTime.now();
-			int linesProcessed = 0;
-			int errors = 0;
+			final ExecutorService executorService = Executors.newWorkStealingPool(2);
 
-			String line;
-			while ((line = reader.readLine()) != null)
-			{
-				try
-				{
-					final LogLine logLine = readLogLine(line);
-					callProcessor.processLogLine(logLine);
-					writer.writeAll(callProcessor.popReadyTraces(false));
-					linesProcessed++;
-				}
-				catch (final LogLineInvalidException | TraceInvalidException e)
-				{
-					System.err.println(e.getMessage() + ", at line " + line);
-					errors++;
-				}
-			}
+			final Future<Stats> statsFuture = executorService.submit(new LogsReadingCallable(reader));
+
+			executorService.submit(new TraceWritingRunnable(writer));
 
 			try
 			{
+				final Stats stats = statsFuture.get();
+				executorService.shutdown();
+
+				// write the remaining
 				writer.writeAll(callProcessor.popReadyTraces(true));
+
+				System.err.println(
+						"Processing took " + stats.getDuration().toMillis() + " ms, " +
+								"processed " + stats.getLinesProcessed() + " lines, " +
+								"encountered " + stats.getErrors() + " errors.");
+
+				executorService.awaitTermination(1, TimeUnit.SECONDS);
 			}
 			catch (final TraceInvalidException e)
 			{
 				System.err.println(e.getMessage());
 			}
+			catch (InterruptedException e)
+			{
+				e.printStackTrace();
+			}
+			catch (ExecutionException e)
+			{
+				e.printStackTrace();
+			}
 
-			System.err.println(
-					"Processing took " + Duration.between(startTime, LocalDateTime.now()).toMillis() + " ms, " +
-							"processed " + linesProcessed + " lines, encountered " + errors + " errors.");
 		}
 		catch (final IOException e)
 		{
@@ -121,5 +128,75 @@ public class DefaultLogsProcessor implements LogsProcessor
 			}
 		}
 		throw new LogLineInvalidException("Unknown date format: " + str);
+	}
+
+	private class LogsReadingCallable implements java.util.concurrent.Callable<Stats>
+	{
+		private final BufferedReader reader;
+
+		LogsReadingCallable(final BufferedReader reader)
+		{
+			this.reader = reader;
+		}
+
+		@Override
+		public Stats call() throws Exception
+		{
+			final Stats stats = new Stats();
+			try
+			{
+				String line;
+				while ((line = reader.readLine()) != null)
+				{
+					try
+					{
+						final LogLine logLine = readLogLine(line);
+						callProcessor.processLogLine(logLine);
+
+						stats.lineProcessed();
+					}
+					catch (final LogLineInvalidException | TraceInvalidException e)
+					{
+						System.err.println(e.getMessage() + ", at line " + line);
+						stats.error();
+					}
+				}
+			}
+			catch (final IOException ioe)
+			{
+				System.err.println("Problem writing or reading file: " + ioe.getMessage());
+			}
+			return stats;
+		}
+	}
+
+	private class TraceWritingRunnable implements Runnable
+	{
+		private final SequenceWriter writer;
+
+		public TraceWritingRunnable(final SequenceWriter writer)
+		{
+			this.writer = writer;
+		}
+
+		@Override
+		public void run()
+		{
+			try
+			{
+				while (true)
+				{
+					Collection<TraceRoot> traces = callProcessor.popReadyTraces(false);
+					if (traces.size() > 0)
+					{
+						writer.writeAll(traces);
+					}
+				}
+			}
+			catch (final IOException ioe)
+			{
+				ioe.printStackTrace();
+			}
+		}
 	}
 }

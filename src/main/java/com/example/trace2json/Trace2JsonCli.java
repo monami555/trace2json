@@ -23,18 +23,13 @@ public class Trace2JsonCli
 			return;
 		}
 
-		// small 444 ms
-		// medium 6118 ms
-
-		// after hashmap
-		// small 284 ms, 306ms for building
-		// medium 4311 ms, 3322 ms for building
-
 		try
 		{
 			logsProcessor.process(
-					"STDIN".equals(args[0]) ? new InputStreamReader(System.in) : new FileReader(new File(args[0])),
-					"STDOUT".equals(args[1]) ? new PrintWriter(System.out) : new FileWriter(new File(args[1])));
+					"STDIN".equals(args[0]) ?
+							new InputStreamReader(System.in) : new FileReader(new File(args[0])),
+					"STDOUT".equals(args[1]) ?
+							new PrintWriter(System.out) : new FileWriter(new File(args[1])));
 		}
 		catch (IOException e)
 		{

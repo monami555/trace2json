@@ -4,6 +4,7 @@ import com.example.trace2json.LogLine;
 import com.example.trace2json.LogLineInvalidException;
 import com.example.trace2json.LogLineProcessor;
 import com.example.trace2json.LogsProcessor;
+import com.example.trace2json.Stats;
 import com.example.trace2json.trace.TraceInvalidException;
 import com.example.trace2json.trace.TraceRoot;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -15,7 +16,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -48,35 +48,48 @@ public class DefaultLogsProcessor implements LogsProcessor
 						.writer(new MinimalPrettyPrinter(System.getProperty("line.separator")))
 						.writeValues(outputWriter))
 		{
-			final LocalDateTime startTime = LocalDateTime.now();
+			final Stats stats = new Stats();
 
 			String line;
 			while ((line = reader.readLine()) != null)
 			{
 				try
 				{
-					final LogLine logLine = readLogLine(line);
-					callProcessor.processLogLine(logLine);
-					writer.writeAll(callProcessor.popReadyTraces(false));
+					readLogLine(line);
+					stats.lineProcessed();
+
+					final int amount = writeTraces(writer, false);
+					stats.tracesProcessed(amount);
 				}
-				catch (final LogLineInvalidException | TraceInvalidException e)
+				catch (final LogLineInvalidException e)
 				{
 					System.err.println(e.getMessage() + ", at line " + line);
+					stats.errorLine();
+				}
+				catch (final TraceInvalidException e)
+				{
+					System.err.println(e.getMessage());
+					stats.errorTrace();
 				}
 			}
 
 			try
 			{
-				final Collection<TraceRoot> newTraces = callProcessor.popReadyTraces(true);
-				writer.writeAll(newTraces);
+				final int amount = writeTraces(writer, true);
+				stats.tracesProcessed(amount);
 			}
-			catch (final LogLineInvalidException | TraceInvalidException e)
+			catch (final TraceInvalidException e)
 			{
-				System.err.println(e.getMessage() + ", at line " + line);
+				System.err.println(e.getMessage());
+				stats.errorTrace();
 			}
 
 			System.err.println(
-					"Processing took: " + Duration.between(startTime, LocalDateTime.now()).toMillis() + " ms");
+					"Processing took " + stats.getDuration().toMillis() + " ms:\n" +
+							"  processed " + stats.getLinesProcessed() + " lines\n" +
+							"  processed " + stats.getTracesProcessed() + " trace trees\n" +
+							"  encountered " + stats.getErrorLines() + " line errors\n" +
+							"  encountered " + stats.getErrorTraces() + " invalid traces");
 		}
 		catch (final IOException e)
 		{
@@ -84,7 +97,23 @@ public class DefaultLogsProcessor implements LogsProcessor
 		}
 	}
 
-	private LogLine readLogLine(final String line)
+	private void readLogLine(final String line)
+	{
+		final LogLine logLine = strToLogLine(line);
+		callProcessor.processLogLine(logLine);
+	}
+
+	private int writeTraces(final SequenceWriter writer, final boolean force) throws IOException
+	{
+		final Collection<TraceRoot> traces = callProcessor.popReadyTraces(force);
+		if (traces.size() > 0)
+		{
+			writer.writeAll(traces);
+		}
+		return traces.size();
+	}
+
+	private LogLine strToLogLine(final String line)
 	{
 		try
 		{
@@ -114,7 +143,7 @@ public class DefaultLogsProcessor implements LogsProcessor
 			}
 			catch (DateTimeParseException e)
 			{
-				// keep trying; yes not a good practice but no better solution at hand
+				// keep trying; yes not a good practice in general, but here seems to be the simplest
 			}
 		}
 		throw new LogLineInvalidException("Unknown date format: " + str);

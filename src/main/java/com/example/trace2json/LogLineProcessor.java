@@ -1,5 +1,6 @@
 package com.example.trace2json;
 
+import com.example.trace2json.trace.TraceInvalidException;
 import com.example.trace2json.trace.TraceRoot;
 
 import java.time.Duration;
@@ -25,7 +26,7 @@ public interface LogLineProcessor
 	 *
 	 * @param logLine the log line
 	 */
-	void processLogLine(LogLine logLine);
+	void processLogLine(LogLine logLine) throws TraceInvalidException;
 
 	/**
 	 * Remove and return the trace trees that have enough information and can be safely assumed to be complete,

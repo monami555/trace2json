@@ -23,13 +23,6 @@ public class Trace2JsonCli
 			return;
 		}
 
-		// small 444 ms
-		// medium 6118 ms
-
-		// after hashmap
-		// small 284 ms, 306ms for building
-		// medium 4311 ms, 3322 ms for building
-
 		try
 		{
 			logsProcessor.process(

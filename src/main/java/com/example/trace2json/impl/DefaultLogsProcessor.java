@@ -53,6 +53,14 @@ public class DefaultLogsProcessor implements LogsProcessor
 						.writer(new MinimalPrettyPrinter(System.getProperty("line.separator")))
 						.writeValues(outputWriter))
 		{
+
+			// speed before introducing executor service
+			// small 306ms, including 284 ms for building the trace trees
+			// medium 4311 ms, including 3322 ms for building the trace trees
+
+			// speed after introducing executor service
+			// medium 4703 ms - worse
+
 			final ExecutorService executorService = Executors.newWorkStealingPool(2);
 
 			final Future<Stats> statsFuture = executorService.submit(new LogsReadingCallable(reader));
@@ -70,7 +78,7 @@ public class DefaultLogsProcessor implements LogsProcessor
 				System.err.println(
 						"Processing took " + stats.getDuration().toMillis() + " ms, " +
 								"processed " + stats.getLinesProcessed() + " lines, " +
-								"encountered " + stats.getErrors() + " errors.");
+								"encountered " + stats.getErrorLines() + " errors.");
 
 				executorService.awaitTermination(1, TimeUnit.SECONDS);
 			}
@@ -158,7 +166,7 @@ public class DefaultLogsProcessor implements LogsProcessor
 					catch (final LogLineInvalidException | TraceInvalidException e)
 					{
 						System.err.println(e.getMessage() + ", at line " + line);
-						stats.error();
+						stats.errorLine();
 					}
 				}
 			}
